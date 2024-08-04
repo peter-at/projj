@@ -75,6 +75,7 @@
             targetPkgs =
               pkgs:
               (with pkgs; [
+	        openssh
                 udev
                 #stdenv
                 gccStdenv
