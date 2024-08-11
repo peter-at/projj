@@ -26,7 +26,8 @@
         rec {
           #devShells.default = devShells.jupyterlab;
           #devShells.default = devShells.jupyter-server;
-          devShells.default = devShells.fhs;
+          #devShells.default = devShells.fhs;
+          devShells.default = devShells.micromamba;
 
           devShells.jupyterlab = pkgs.mkShell {
             name = "venv4jupyter";
@@ -99,6 +100,37 @@
               #export PROMPT="%B%F{cyan}%1~%f%b %F{green}%!%f%% "
             '';
           };
+
+          # uses FHS for micromamba - https://nixos.wiki/wiki/Python#micromamba
+          devShells.micromamba =
+          let
+            homedir = builtins.getEnv "HOME";
+            inherit (inputs.nixpkgs.lib) assertMsg;
+	    inherit (builtins) stringLength;
+          in
+	  assert assertMsg (stringLength homedir != 0) "Need to use 'nix develop --impure' to get HOME env.";
+	  mkFHSEnvShell pkgs {
+	    name = "micromamba";
+	    targetPkgs =
+	      pkgs:
+	      (with pkgs; [
+	        util-linux
+	        which
+                nodejs_20
+                zeromq
+	        micromamba
+	      ]);
+	    runScript = "bash";
+            profile = ''
+              set -e
+              eval "$(micromamba shell hook --shell=posix)"
+              export MAMBA_ROOT_PREFIX=${homedir}/.mamba
+	      [ -d $MAMBA_ROOT_PREFIX/envs/mmenv ] || micromamba create -q -n mmenv python=3.12.5 -c conda-forge
+              micromamba activate mmenv
+              #micromamba install --yes python-dotenv -c conda-forge
+              set +e
+            '';
+	  };
         };
     };
 }
