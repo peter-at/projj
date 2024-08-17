@@ -27,6 +27,7 @@
           #devShells.default = devShells.jupyterlab;
           #devShells.default = devShells.jupyter-server;
           #devShells.default = devShells.fhs;
+          #devShells.default = devShells.micromamba-jl366;
           devShells.default = devShells.micromamba;
 
           devShells.jupyterlab = pkgs.mkShell {
@@ -76,7 +77,7 @@
             targetPkgs =
               pkgs:
               (with pkgs; [
-	        openssh
+	        #openssh
                 udev
                 #stdenv
                 gccStdenv
@@ -102,7 +103,7 @@
           };
 
           # uses FHS for micromamba - https://nixos.wiki/wiki/Python#micromamba
-          devShells.micromamba =
+          devShells.micromamba-jl366 =
           let
             homedir = builtins.getEnv "HOME";
             inherit (inputs.nixpkgs.lib) assertMsg;
@@ -125,9 +126,42 @@
               set -e
               eval "$(micromamba shell hook --shell=posix)"
               export MAMBA_ROOT_PREFIX=${homedir}/.mamba
-	      [ -d $MAMBA_ROOT_PREFIX/envs/mmenv ] || micromamba create -q -n mmenv python=3.12.5 -c conda-forge
-              micromamba activate mmenv
-              #micromamba install --yes python-dotenv -c conda-forge
+	      # jlab3 env
+	      [ -d $MAMBA_ROOT_PREFIX/envs/jlab3 ] || micromamba create -q -n jlab3 python=3.11 -c conda-forge
+              micromamba activate jlab3
+              set +e
+            '';
+	  };
+
+          # uses FHS for micromamba - https://nixos.wiki/wiki/Python#micromamba
+          devShells.micromamba =
+          let
+            homedir = builtins.getEnv "HOME";
+            inherit (inputs.nixpkgs.lib) assertMsg;
+	    inherit (builtins) stringLength;
+          in
+	  assert assertMsg (stringLength homedir != 0) "Need to use 'nix develop --impure' to get HOME env.";
+	  mkFHSEnvShell pkgs {
+	    name = "micromamba";
+	    targetPkgs =
+	      pkgs:
+	      (with pkgs; [
+	        procps
+	        util-linux
+	        which
+		openssh
+                zeromq
+	        micromamba
+	      ]);
+	    runScript = "bash";
+            profile = ''
+              set -e
+	      mkdir -p /etc/dropbear
+              eval "$(micromamba shell hook --shell=posix)"
+              export MAMBA_ROOT_PREFIX=${homedir}/.mamba
+	      # mamba enviornmnet
+	      [ -d $MAMBA_ROOT_PREFIX/envs/mamba ] || micromamba create -y -n mamba -f ./mamba-env.yml
+              micromamba activate mamba
               set +e
             '';
 	  };
