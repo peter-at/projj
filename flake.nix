@@ -28,7 +28,8 @@
           #devShells.default = devShells.jupyter-server;
           #devShells.default = devShells.fhs;
           #devShells.default = devShells.micromamba-jl366;
-          devShells.default = devShells.micromamba;
+          #devShells.default = devShells.micromamba;
+          devShells.default = devShells.mixmamba;
 
           devShells.jupyterlab = pkgs.mkShell {
             name = "venv4jupyter";
@@ -171,6 +172,30 @@
               set +e
             '';
 	  };
+
+          devShells.mixmamba =
+          let
+            homedir = builtins.getEnv "HOME";
+            inherit (inputs.nixpkgs.lib) assertMsg;
+	    inherit (builtins) stringLength;
+          in
+	  assert assertMsg (stringLength homedir != 0) "Need to use 'nix develop --impure' to get HOME env.";
+          pkgs.mkShell {
+            name = "mixmamba";
+            packages =
+              (with pkgs; [
+	        micromamba
+              ]);
+            shellHook = ''
+              set -e
+              eval "$(micromamba shell hook --shell=posix)"
+              export MAMBA_ROOT_PREFIX=${homedir}/.mamba
+	      # mamba enviornmnet
+	      [ -d $MAMBA_ROOT_PREFIX/envs/mamba ] || micromamba create -y -n mamba -f ./mamba-env.yml
+              micromamba activate mamba
+              set +e
+            '';
+          };
         };
     };
 }
