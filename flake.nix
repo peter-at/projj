@@ -146,13 +146,19 @@
 	    targetPkgs =
 	      pkgs:
 	      (with pkgs; [
+                stdenv
+                gcc-unwrapped
+                binutils-unwrapped
 	        procps
 	        util-linux
 	        which
-		openssh
                 zeromq
 	        micromamba
-	      ]);
+	      ])
+              ++ (with pkgs.nodePackages; [
+	        #parcel
+	        node-gyp
+              ]);
 	    runScript = "bash";
             profile = ''
               set -e
